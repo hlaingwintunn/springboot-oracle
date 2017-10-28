@@ -1,5 +1,7 @@
 package com.hlaing.springoracle.service;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -44,11 +46,11 @@ public class LocationService {
 			 final String fileName = configProperties.getGeoFile();
 			 fullFileName = s.concat(fileName);
 			 
-			 final String content = new String(Files.readAllBytes(Paths.get(fullFileName)));
-			 final String [] geoData = content.split(System.lineSeparator());
+			 final BufferedReader br = new BufferedReader(new FileReader(fullFileName));
 			 
-			 for(String line : geoData) {
-				 final String [] field = line.split(";");
+			 String line = null;
+			 while((line = br.readLine()) != null) {
+				 final String[] field = line.split(";");
 				 final String postalCode = field[0];
 				 final double longitude = Double.parseDouble(field[1]);
 				 final double latitude = Double.parseDouble(field[2]);
