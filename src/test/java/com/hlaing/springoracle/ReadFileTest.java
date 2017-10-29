@@ -32,10 +32,13 @@ public class ReadFileTest extends AbstractTestNGSpringContextTests {
 	@Autowired
 	private OracleProperties oracleProperties;
 	
-	@Test (enabled = true)
+	@Test (enabled = false)
 	public void readDataFromFileTest() {
 		final List<Location> locations = locationService.readAlldataFromfile();
-		locationService.insertGeoLocation(locations);
+		
+       for(int i=0; i < 100; i++) {
+    	   locationService.insertGeoLocation(locations.get(i));
+       }
 		
 		assertNotNull(configProperties.getGeoFile());
 	}
@@ -71,8 +74,15 @@ public class ReadFileTest extends AbstractTestNGSpringContextTests {
 	
 	@Test (enabled = false)
 	public void truncateTableTest() {
-		final boolean result = locationService.truncateTable();
+		final boolean result = locationService.dropTable();
 		
 		assertTrue(result);
+	}
+	
+	@Test (enabled = true)
+	public void selectTableTest() {
+		final List<Location> result = locationService.getAllDataFromOracle();
+		
+		assertTrue(result.size() == 100);
 	}
 }

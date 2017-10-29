@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -35,7 +36,9 @@ public class LocationService {
 			+ "(ID, POSTALCODE, LATITUDE, LONGITUDE) VALUES" 
 			+ "(?,?,?,?)";
 	
-	private static final String truncateTableSQL = "TRUNCATE TABLE GEOLOCATION";
+	private static final String dropTableSQL = "DROP TABLE GEOLOCATION";
+	
+	private static final String selectTableSQL = "SELECT * FROM GEOLOCATION";
 
 	@Autowired
 	private OracleProperties oracleProperties;
@@ -80,12 +83,39 @@ public class LocationService {
 		return locations;
 
 	}
+	
+	public List<Location> getAllDataFromOracle() {
+		final List<Location> result = new ArrayList<>();
+		final Optional<Connection> conOption = openConnection();
+		final Connection connection = conOption.get();
+		
+		try(PreparedStatement stmt = connection.prepareStatement(selectTableSQL)) {
+			ResultSet rs = stmt.executeQuery();
+			
+			while(rs.next()) {
+				final Location location = new Location()
+						.setId(rs.getString("ID"))
+						.setPostalCode(rs.getLong("POSTALCODE"))
+						.setLatitude(rs.getDouble("LATITUDE"))
+						.setLogitude(rs.getDouble("LONGITUDE"));
+				
+				result.add(location);
+			}
+			
+			rs.close();
+			closeConnection(connection);
+			
+		}catch(SQLException e) {
+			logger.error("Failed to read data from oracle {}", e);
+		}
+		
+		return result;
+	}
 
-	public void insertGeoLocation(final List<Location> locations) {
+	public void insertGeoLocation(final Location location) {
 		final Optional<Connection> conOption = openConnection();
 		final Connection connection = conOption.get();
 
-		for (Location location : locations) {
 			try (PreparedStatement stmt = connection.prepareStatement(insertTableSQL)) {
 				stmt.setString(1, location.getId());
 				stmt.setLong(2, location.getPostalCode());
@@ -93,21 +123,22 @@ public class LocationService {
 				stmt.setDouble(4, location.getLogitude());
 
 				stmt.executeUpdate();
-				//connection.commit();
+				connection.commit();
 
 			} catch (SQLException e) {
 				logger.error("Failed to insert geoData to oracle {}", e);
+			} finally {
+				closeConnection(connection);
+				logger.info("GeoLocation is inserted to Oracle");
 			}
-		}
-		closeConnection(connection);
-		logger.info("GeoLocation data {} are inserted to Oracle", locations.size());
+		
 	}
 	
-	public boolean truncateTable() {
+	public boolean dropTable() {
 		final Optional<Connection> conOption = openConnection();
 		final Connection connection = conOption.get();
 		
-		try(PreparedStatement stmt = connection.prepareStatement(truncateTableSQL)) {
+		try(PreparedStatement stmt = connection.prepareStatement(dropTableSQL)) {
 			stmt.executeUpdate();
 			connection.commit();
 			logger.info("Cleared all geoLocation data");
